@@ -4,11 +4,50 @@
 # https://aka.ms/yaml
 
 trigger:
-- master
+- none
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: windows-latest
+
+variables:
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+  solution: '**/myFirstAzureWebApp.sln'
+  project: ' **/myFirstAzureWebApp/myFirstAzureWebApp.csproj'
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+- task: NuGetToolInstaller@1
+  displayName: Nuget Install
+  inputs:
+    versionSpec: 
+    checkLatest: true
+
+- task: DotNetCoreCLI@2
+  displayName: Nuget restore
+  inputs:
+    command: 'restore'
+    projects: '$(solution)'
+    feedsToUse: 'select'
+
+- task: DotNetCoreCLI@2
+  displayName: Nuget Test
+  inputs:
+    command: 'test'
+    projects: '$(solution)'
+    arguments: '--configuration $(BuildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  displayName: Nuget Publish
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: '$(project)'
+    arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+    modifyOutputPath: false
+
+- task: PublishBuildArtifacts@1
+  displayName: Publish build artifact
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
